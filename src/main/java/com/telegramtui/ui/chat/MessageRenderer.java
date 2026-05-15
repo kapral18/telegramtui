@@ -47,6 +47,44 @@ public class MessageRenderer {
         return rows;
     }
 
+    public static int[] messageRelativeBounds(List<MessageModel> group, int selectedPos, int panelWidth,
+            Map<Long, MessageModel> msgById) {
+        if (selectedPos < 0 || selectedPos >= group.size()) {
+            return new int[]{-1, -1};
+        }
+
+        boolean isOutgoing = group.get(0).isOutgoing();
+        int wrapWidth = textWrapWidth(isOutgoing, panelWidth);
+
+        // top margin row + name/timestamp row
+        int row = 2;
+        int msgIdx = 0;
+        for (MessageModel m : group) {
+            int start = row;
+
+            if (!m.forwardedFrom().isEmpty()) {
+                row++;
+            }
+
+            if (m.replyToMessageId() > 0 && msgById.containsKey(m.replyToMessageId())) {
+                // gap row + reply header row
+                row += 2;
+            }
+
+            List<String> lines = TextRenderer.wrap(m.text().isEmpty() ? " " : m.text(), wrapWidth);
+            row += lines.size();
+            int end = row - 1;
+
+            if (msgIdx == selectedPos) {
+                return new int[]{start, end};
+            }
+
+            msgIdx++;
+        }
+
+        return new int[]{-1, -1};
+    }
+
     public static void renderGroup(TextGraphics g, List<MessageModel> group,
             int panelX, int panelY, int panelWidth, boolean isGroupChat, int selectedPos,
             int clipTop, int clipBottom, Map<Long, MessageModel> msgById) {

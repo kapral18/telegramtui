@@ -66,13 +66,31 @@ class ConversationRenderer {
             }
         }
 
-        // scroll viewport so the selected message stays visible
-        // if nothing is selected, stick to the bottom (newest messages)
+        // scroll viewport so the selected message stays visible (not only its
+        // sender group). If nothing is selected, stick to the bottom (newest).
         if (selGroupIdx >= 0) {
-            int selTop = cum[selGroupIdx];
-            int selBot = cum[selGroupIdx + 1] - 1;
-            if (selBot < viewportTop) viewportTop = selTop;
-            else if (selTop > viewportTop + h - 1) viewportTop = selBot - h + 1;
+            int[] rel = MessageRenderer.messageRelativeBounds(
+                    groups.get(selGroupIdx), selPosInGroup, w, msgById
+            );
+            int selTop = rel[0] >= 0 ? cum[selGroupIdx] + rel[0] : cum[selGroupIdx];
+            int selBot = rel[1] >= 0 ? cum[selGroupIdx] + rel[1] : cum[selGroupIdx + 1] - 1;
+            int selHeight = selBot - selTop + 1;
+
+            if (selHeight > h) {
+                // Oversized message cannot fully fit in the viewport.
+                // Keep scrolling stable by preferring top alignment.
+                if (selTop < viewportTop) {
+                    viewportTop = selTop;
+                } else if (selBot > viewportTop + h - 1 && selTop > viewportTop) {
+                    viewportTop = selBot - h + 1;
+                }
+            } else {
+                if (selTop < viewportTop) {
+                    viewportTop = selTop;
+                } else if (selBot > viewportTop + h - 1) {
+                    viewportTop = selBot - h + 1;
+                }
+            }
         } else {
             viewportTop = maxViewport;
         }
